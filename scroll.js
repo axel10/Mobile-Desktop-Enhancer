@@ -21,13 +21,18 @@
         zIndex: 999999,
         color: 'rgba(128,128,128,0.5)',
         hoverBg: 'rgba(128,128,128,0.1)',
-        minThumb: 20
+        minThumb: 20,
+        skipSize: 100
     };
 
     const processed = new WeakSet();
     const instances = [];
     let rafPending = false;
     let scanTimer = null;
+
+    const policy = window.trustedTypes && window.trustedTypes.createPolicy ?
+        window.trustedTypes.createPolicy('gm-sb-policy', { createHTML: s => s }) :
+        null;
 
     function throttledScan() {
         if (scanTimer) return;
@@ -104,6 +109,7 @@
 
         if (processed.has(el)) return;
         if (!isWin && (el === document.documentElement || el === document.body)) return;
+        if (!isWin && el.clientHeight < CONFIG.skipSize) return;
         processed.add(el);
 
         // Create scrollbar DOM
@@ -112,11 +118,13 @@
 
         const up = document.createElement('div');
         up.className = 'gm-sb-arr';
-        up.innerHTML = '<svg viewBox="0 0 100 100"><path d="M50 20 L20 70 L80 70 Z" fill="currentColor"/></svg>';
+        const svgUp = '<svg viewBox="0 0 100 100"><path d="M50 20 L20 70 L80 70 Z" fill="currentColor"/></svg>';
+        up.innerHTML = policy ? policy.createHTML(svgUp) : svgUp;
 
         const down = document.createElement('div');
         down.className = 'gm-sb-arr';
-        down.innerHTML = '<svg viewBox="0 0 100 100"><path d="M50 80 L20 30 L80 30 Z" fill="currentColor"/></svg>';
+        const svgDown = '<svg viewBox="0 0 100 100"><path d="M50 80 L20 30 L80 30 Z" fill="currentColor"/></svg>';
+        down.innerHTML = policy ? policy.createHTML(svgDown) : svgDown;
 
         const trk = document.createElement('div');
         trk.className = 'gm-sb-trk';
@@ -162,7 +170,6 @@
 
         function update() {
             if (!isWin && !el.isConnected) { ctr.style.display = 'none'; return; }
-
             const { sH, cH, sT } = getInfo();
             const r = getRect();
 

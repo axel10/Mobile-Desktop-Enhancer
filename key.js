@@ -64,7 +64,7 @@
                     currentIndex = el.selectionDirection === 'backward' ? el.selectionStart : el.selectionEnd;
                 }
 
-                el.style.outline = '2px dashed #007bff'; // 蓝色虚线视觉提示
+                //   el.style.outline = '1px dashed #007bff'; // 蓝色虚线视觉提示
             }
         }
     }, true);

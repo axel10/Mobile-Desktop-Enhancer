@@ -12,10 +12,13 @@
     'use strict';
 
     let isScrolling = false;
+    let startX = 0;
     let startY = 0;
+    let currentX = 0;
     let currentY = 0;
     let animationId = null;
-    let originalCursor = ""; // 用于记录原始指针样式
+    let originalCursor = "";
+    let scrollTarget = null;
 
     // 1. 监听中键按下
     window.addEventListener('mousedown', function (e) {
@@ -34,14 +37,32 @@
         if (isScrolling) {
             stopAutoScroll();
         } else {
-            startAutoScroll(e.clientY);
+            startAutoScroll(e);
         }
     }, { capture: true, passive: false });
 
-    function startAutoScroll(y) {
+    function getScrollParent(el) {
+        let parent = el;
+        while (parent && parent !== document.body && parent !== document.documentElement) {
+            const style = window.getComputedStyle(parent);
+            const overflow = style.overflowY + style.overflowX + style.overflow;
+            const canScrollY = parent.scrollHeight > parent.clientHeight;
+            const canScrollX = parent.scrollWidth > parent.clientWidth;
+            if (/(auto|scroll)/.test(overflow) && (canScrollY || canScrollX)) {
+                return parent;
+            }
+            parent = parent.parentElement;
+        }
+        return window;
+    }
+
+    function startAutoScroll(e) {
         isScrolling = true;
-        startY = y;
-        currentY = y;
+        startX = e.clientX;
+        startY = e.clientY;
+        currentX = e.clientX;
+        currentY = e.clientY;
+        scrollTarget = getScrollParent(e.target);
 
         // --- 核心修改：改变指针状态 ---
         originalCursor = document.body.style.cursor;
@@ -53,7 +74,7 @@
         const indicator = document.createElement('div');
         indicator.id = 'scroll-indicator';
         indicator.style = `
-            position: fixed; top: ${y - 5}px; left: ${event.clientX - 5}px;
+            position: fixed; top: ${startY - 5}px; left: ${startX - 5}px;
             width: 10px; height: 10px; background: rgba(255, 0, 0, 0.4);
             border: 2px solid white; border-radius: 50%; z-index: 999999; pointer-events: none;
         `;
@@ -67,6 +88,7 @@
     }
 
     function updatePosition(e) {
+        currentX = e.clientX;
         currentY = e.clientY;
     }
 
@@ -90,18 +112,35 @@
 
         const indicator = document.getElementById('scroll-indicator');
         if (indicator) indicator.remove();
+        scrollTarget = null;
     }
 
     function animate() {
         if (!isScrolling) return;
+        if (!scrollTarget) return;
 
-        const diff = currentY - startY;
+        const diffX = currentX - startX;
+        const diffY = currentY - startY;
+
+        const scrollData = { behavior: 'instant' };
+        let shouldScroll = false;
 
         // 15px 的死区，防止微小位移
-        if (Math.abs(diff) > 15) {
-            // 滚动算法：方向 * (距离/系数)^1.5，系数越大滚动越慢
-            const speed = Math.sign(diff) * Math.pow(Math.abs(diff) / 12, 1.5);
-            window.scrollBy({ top: speed, behavior: 'instant' });
+        if (Math.abs(diffX) > 15) {
+            scrollData.left = Math.sign(diffX) * Math.pow(Math.abs(diffX) / 12, 1.5);
+            shouldScroll = true;
+        }
+        if (Math.abs(diffY) > 15) {
+            scrollData.top = Math.sign(diffY) * Math.pow(Math.abs(diffY) / 12, 1.5);
+            shouldScroll = true;
+        }
+
+        if (shouldScroll) {
+            if (scrollTarget === window) {
+                window.scrollBy(scrollData);
+            } else {
+                scrollTarget.scrollBy(scrollData);
+            }
         }
 
         animationId = requestAnimationFrame(animate);

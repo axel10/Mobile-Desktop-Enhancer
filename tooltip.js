@@ -8,8 +8,29 @@
 // @grant        none
 // ==/UserScript==
 
-(function() {
-    'use strict';
+(function () {
+    // 0. 属性拦截：拦截 HTMLElement.prototype.title
+    // 防止其他 JS 依赖 title 属性导致发生错误（因为我们为了屏蔽原生工具提示而移除了 title 属性）
+    const originalTitleDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'title');
+    if (originalTitleDescriptor) {
+        Object.defineProperty(HTMLElement.prototype, 'title', {
+            get() {
+                // 如果存在自定义标题（说明已被接管），则返回自定义标题；否则调用原始 getter
+                return this.dataset.customTitle !== undefined ? this.dataset.customTitle : originalTitleDescriptor.get.call(this);
+            },
+            set(value) {
+                // 如果存在自定义标题（正在被接管），则同步更新自定义标题
+                if (this.dataset.customTitle !== undefined) {
+                    this.dataset.customTitle = value;
+                } else {
+                    // 否则按正常流程设置（如果元素还没被接管，依然会让它走原始 setter）
+                    originalTitleDescriptor.set.call(this, value);
+                }
+            },
+            configurable: true,
+            enumerable: true
+        });
+    }
 
     // 1. 创建自定义提示框元素
     const tooltip = document.createElement('div');

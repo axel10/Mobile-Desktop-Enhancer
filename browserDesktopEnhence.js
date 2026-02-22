@@ -15,6 +15,28 @@
        模块1: 智能工具提示 (延迟显示版)
        ============================================ */
     (function TooltipModule() {
+        const originalTitleDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'title');
+        if (originalTitleDescriptor) {
+            Object.defineProperty(HTMLElement.prototype, 'title', {
+                get() {
+                    // 如果存在自定义标题（说明已被接管），则返回自定义标题；否则调用原始 getter
+                    return this.dataset.customTitle !== undefined ? this.dataset.customTitle : originalTitleDescriptor.get.call(this);
+                },
+                set(value) {
+                    // 如果存在自定义标题（正在被接管），则同步更新自定义标题
+                    if (this.dataset.customTitle !== undefined) {
+                        this.dataset.customTitle = value;
+                    } else {
+                        // 否则按正常流程设置（如果元素还没被接管，依然会让它走原始 setter）
+                        originalTitleDescriptor.set.call(this, value);
+                    }
+                },
+                configurable: true,
+                enumerable: true
+            });
+        }
+
+        // 1. 创建自定义提示框元素
         const tooltip = document.createElement('div');
         Object.assign(tooltip.style, {
             position: 'fixed',
@@ -32,10 +54,11 @@
         });
         document.body.appendChild(tooltip);
 
-        let hoverTimer = null;
-        let currentX = 0;
-        let currentY = 0;
+        let hoverTimer = null; // 用于记录延迟的定时器
+        let currentX = 0;      // 记录当前鼠标 X 坐标
+        let currentY = 0;      // 记录当前鼠标 Y 坐标
 
+        // 统一处理位置更新和边界检测的函数
         function updateTooltipPosition() {
             const offset = 15;
             let x = currentX + offset;
@@ -45,9 +68,12 @@
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
 
+            // 右侧边界检查
             if (x + tooltipRect.width > viewportWidth) {
                 x = currentX - tooltipRect.width - offset;
             }
+
+            // 底部边界检查
             if (y + tooltipRect.height > viewportHeight) {
                 y = currentY - tooltipRect.height - offset;
             }
@@ -56,10 +82,13 @@
             tooltip.style.top = `${y}px`;
         }
 
+        // 2. 监听鼠标移入
         document.addEventListener('mouseover', (e) => {
+            // 查找带有 title 属性，或者已经被我们接管了的元素 (不再局限于 'a' 标签)
             const target = e.target.closest('[title], [data-custom-title]');
             if (!target) return;
 
+            // 立即接管并屏蔽原生 title，防止浏览器在 2 秒内弹出原生黑框
             if (target.hasAttribute('title')) {
                 target.dataset.customTitle = target.getAttribute('title');
                 target.removeAttribute('title');
@@ -68,29 +97,39 @@
             const text = target.dataset.customTitle;
             if (!text) return;
 
+            // 清除之前的定时器（防止快速滑动时触发多个）
             if (hoverTimer) clearTimeout(hoverTimer);
 
+            // 设置 1 秒 (1000毫秒) 延迟
             hoverTimer = setTimeout(() => {
                 tooltip.textContent = text;
                 tooltip.style.visibility = 'visible';
                 tooltip.style.opacity = '1';
+                // 文本内容填入后，计算宽高并更新位置
                 updateTooltipPosition();
             }, 1000);
         });
 
+        // 3. 监听鼠标移动
         document.addEventListener('mousemove', (e) => {
+            // 实时更新鼠标坐标记录
             currentX = e.clientX;
             currentY = e.clientY;
 
+            // 只有当提示框已经显示时，才让它跟随鼠标移动
             if (tooltip.style.visibility === 'visible') {
                 updateTooltipPosition();
             }
         });
 
+        // 4. 监听鼠标移出
         document.addEventListener('mouseout', (e) => {
             const target = e.target.closest('[title], [data-custom-title]');
             if (target) {
+                // 如果鼠标在 2 秒内移出，取消定时器，阻止提示框出现
                 if (hoverTimer) clearTimeout(hoverTimer);
+
+                // 隐藏提示框
                 tooltip.style.visibility = 'hidden';
                 tooltip.style.opacity = '0';
             }
@@ -154,7 +193,7 @@
                         currentIndex = el.selectionDirection === 'backward' ? el.selectionStart : el.selectionEnd;
                     }
 
-                    el.style.outline = '2px dashed #007bff'; // 蓝色虚线视觉提示
+                    // el.style.outline = '2px dashed #007bff'; // 蓝色虚线视觉提示
                 }
             }
         }, true);
@@ -269,13 +308,18 @@
             zIndex: 999999,
             color: 'rgba(128,128,128,0.5)',
             hoverBg: 'rgba(128,128,128,0.1)',
-            minThumb: 20
+            minThumb: 20,
+            skipSize: 100
         };
 
         const processed = new WeakSet();
         const instances = [];
         let rafPending = false;
         let scanTimer = null;
+
+        const policy = window.trustedTypes && window.trustedTypes.createPolicy ?
+            window.trustedTypes.createPolicy('gm-sb-policy', { createHTML: s => s }) :
+            null;
 
         function throttledScan() {
             if (scanTimer) return;
@@ -299,50 +343,50 @@
             const s = document.createElement('style');
             s.id = 'gm-sb-style';
             s.textContent = `
-                .gm-no-sb { scrollbar-width: none !important; }
-                .gm-no-sb::-webkit-scrollbar { display: none !important; }
+            .gm-no-sb { scrollbar-width: none !important; }
+            .gm-no-sb::-webkit-scrollbar { display: none !important; }
 
-                .gm-sb {
-                    position: fixed;
-                    width: ${CONFIG.width}px;
-                    z-index: ${CONFIG.zIndex};
-                    display: flex;
-                    flex-direction: column;
-                    user-select: none;
-                    touch-action: none;
-                    background: transparent;
-                    pointer-events: none;
-                    box-sizing: border-box;
-                }
-                .gm-sb .gm-sb-arr, .gm-sb .gm-sb-trk { pointer-events: auto; }
-                .gm-sb .gm-sb-trk:hover { background: ${CONFIG.hoverBg}; }
-                .gm-sb:hover .gm-sb-trk, .gm-sb:hover .gm-sb-arr { width: ${CONFIG.width}px; }
+            .gm-sb {
+                position: fixed;
+                width: ${CONFIG.width}px;
+                z-index: ${CONFIG.zIndex};
+                display: flex;
+                flex-direction: column;
+                user-select: none;
+                touch-action: none;
+                background: transparent;
+                pointer-events: none;
+                box-sizing: border-box;
+            }
+            .gm-sb .gm-sb-arr, .gm-sb .gm-sb-trk { pointer-events: auto; }
+            .gm-sb .gm-sb-trk:hover { background: ${CONFIG.hoverBg}; }
+            .gm-sb:hover .gm-sb-trk, .gm-sb:hover .gm-sb-arr { width: ${CONFIG.width}px; }
 
-                .gm-sb-arr {
-                    height: ${CONFIG.arrowHeight}px;
-                    display: flex; visibility: hidden;
-                    align-items: center; justify-content: center;
-                    color: ${CONFIG.color}; cursor: default;
-                    width: ${CONFIG.width / 2}px;
-                    margin-left: auto;
-                    transition: width .2s;
-                }
-                .gm-sb:hover .gm-sb-arr { visibility: visible; }
+            .gm-sb-arr {
+                height: ${CONFIG.arrowHeight}px;
+                display: flex; visibility: hidden;
+                align-items: center; justify-content: center;
+                color: ${CONFIG.color}; cursor: default;
+                width: ${CONFIG.width / 2}px;
+                margin-left: auto;
+                transition: width .2s;
+            }
+            .gm-sb:hover .gm-sb-arr { visibility: visible; }
 
-                .gm-sb-trk {
-                    flex: 1; position: relative;
-                    width: ${CONFIG.width / 2}px;
-                    margin-left: auto;
-                    transition: width .2s;
-                }
+            .gm-sb-trk {
+                flex: 1; position: relative;
+                width: ${CONFIG.width / 2}px;
+                margin-left: auto;
+                transition: width .2s;
+            }
 
-                .gm-sb-thb {
-                    position: absolute; width: 100%;
-                    background: ${CONFIG.color};
-                    border-radius: 10px;
-                }
-                .gm-sb-thb.active { background: rgba(100,100,100,.8); }
-            `;
+            .gm-sb-thb {
+                position: absolute; width: 100%;
+                background: ${CONFIG.color};
+                border-radius: 10px;
+            }
+            .gm-sb-thb.active { background: rgba(100,100,100,.8); }
+        `;
             document.head.appendChild(s);
         }
 
@@ -352,18 +396,22 @@
 
             if (processed.has(el)) return;
             if (!isWin && (el === document.documentElement || el === document.body)) return;
+            if (!isWin && el.clientHeight < CONFIG.skipSize) return;
             processed.add(el);
 
+            // Create scrollbar DOM
             const ctr = document.createElement('div');
             ctr.className = 'gm-sb';
 
             const up = document.createElement('div');
             up.className = 'gm-sb-arr';
-            up.innerHTML = '<svg viewBox="0 0 100 100"><path d="M50 20 L20 70 L80 70 Z" fill="currentColor"/></svg>';
+            const svgUp = '<svg viewBox="0 0 100 100"><path d="M50 20 L20 70 L80 70 Z" fill="currentColor"/></svg>';
+            up.innerHTML = policy ? policy.createHTML(svgUp) : svgUp;
 
             const down = document.createElement('div');
             down.className = 'gm-sb-arr';
-            down.innerHTML = '<svg viewBox="0 0 100 100"><path d="M50 80 L20 30 L80 30 Z" fill="currentColor"/></svg>';
+            const svgDown = '<svg viewBox="0 0 100 100"><path d="M50 80 L20 30 L80 30 Z" fill="currentColor"/></svg>';
+            down.innerHTML = policy ? policy.createHTML(svgDown) : svgDown;
 
             const trk = document.createElement('div');
             trk.className = 'gm-sb-trk';
@@ -374,6 +422,7 @@
             ctr.append(up, trk, down);
             document.body.appendChild(ctr);
 
+            // Hide native scrollbar
             if (isWin) {
                 document.documentElement.classList.add('gm-no-sb');
                 document.body.classList.add('gm-no-sb');
@@ -408,10 +457,10 @@
 
             function update() {
                 if (!isWin && !el.isConnected) { ctr.style.display = 'none'; return; }
-
                 const { sH, cH, sT } = getInfo();
                 const r = getRect();
 
+                // Visible rect clamped to viewport
                 const vTop = Math.max(0, r.top);
                 const vBot = Math.min(window.innerHeight, r.bottom);
                 const vH = vBot - vTop;
@@ -434,6 +483,7 @@
                 thb.style.transform = `translateY(${thumbTop}px)`;
             }
 
+            // === Drag ===
             thb.addEventListener('pointerdown', e => {
                 if (e.pointerType !== 'mouse') return;
                 isDrag = true; thb.classList.add('active');
@@ -452,6 +502,7 @@
 
             thb.addEventListener('pointerup', () => { isDrag = false; thb.classList.remove('active'); });
 
+            // === Arrows ===
             let aT = null, aF = null;
 
             function startAuto(dir) {
@@ -466,17 +517,20 @@
             up.addEventListener('pointerdown', e => { e.stopPropagation(); startAuto(-1); });
             down.addEventListener('pointerdown', e => { e.stopPropagation(); startAuto(1); });
 
+            // === Track click ===
             trk.addEventListener('pointerdown', e => {
                 if (e.target === thb) return;
                 const tr = thb.getBoundingClientRect();
                 doScrollBy((e.clientY > tr.bottom ? 1 : -1) * getInfo().cH * 0.9);
             });
 
+            // === Wheel Scroll on Scrollbar ===
             ctr.addEventListener('wheel', e => {
                 e.preventDefault();
                 doScrollBy(e.deltaY);
             }, { passive: false });
 
+            // === Observers ===
             (isWin ? window : el).addEventListener('scroll', scheduleUpdate, { passive: true });
 
             if (isWin) {
@@ -490,8 +544,10 @@
         }
 
         function scan() {
+            // Apply to window first
             attachScrollbar(window);
 
+            // Scan all elements for overflow/overflowY = auto|scroll
             const all = document.querySelectorAll('*');
             for (const el of all) {
                 if (processed.has(el)) continue;
@@ -529,58 +585,88 @@
        ============================================ */
     (function MiddleMouseModule() {
         let isScrolling = false;
+        let startX = 0;
         let startY = 0;
+        let currentX = 0;
         let currentY = 0;
         let animationId = null;
         let originalCursor = "";
+        let scrollTarget = null;
 
+        // 1. 监听中键按下
         window.addEventListener('mousedown', function (e) {
-            if (e.button !== 1) return;
+            if (e.button !== 1) return; // 只处理中键 (0:左, 1:中, 2:右)
 
             const target = e.target.closest('a');
             if (target && target.href) {
+                // 如果是链接，不做拦截，让浏览器执行默认的新标签打开逻辑
                 return;
             }
 
+            // 屏蔽原生滚动模式
             e.preventDefault();
             e.stopPropagation();
 
             if (isScrolling) {
                 stopAutoScroll();
             } else {
-                startAutoScroll(e.clientY, e.clientX);
+                startAutoScroll(e);
             }
         }, { capture: true, passive: false });
 
-        function startAutoScroll(y, x) {
-            isScrolling = true;
-            startY = y;
-            currentY = y;
+        function getScrollParent(el) {
+            let parent = el;
+            while (parent && parent !== document.body && parent !== document.documentElement) {
+                const style = window.getComputedStyle(parent);
+                const overflow = style.overflowY + style.overflowX + style.overflow;
+                const canScrollY = parent.scrollHeight > parent.clientHeight;
+                const canScrollX = parent.scrollWidth > parent.clientWidth;
+                if (/(auto|scroll)/.test(overflow) && (canScrollY || canScrollX)) {
+                    return parent;
+                }
+                parent = parent.parentElement;
+            }
+            return window;
+        }
 
+        function startAutoScroll(e) {
+            isScrolling = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            currentX = e.clientX;
+            currentY = e.clientY;
+            scrollTarget = getScrollParent(e.target);
+
+            // --- 核心修改：改变指针状态 ---
             originalCursor = document.body.style.cursor;
             document.body.style.setProperty('cursor', 'move', 'important');
+            // 同时也给 html 标签加一下，确保即使鼠标不在 body 范围内也生效
             document.documentElement.style.setProperty('cursor', 'move', 'important');
 
+            // 视觉指示点
             const indicator = document.createElement('div');
             indicator.id = 'scroll-indicator';
             indicator.style = `
-                position: fixed; top: ${y - 5}px; left: ${x - 5}px;
-                width: 10px; height: 10px; background: rgba(255, 0, 0, 0.4);
-                border: 2px solid white; border-radius: 50%; z-index: 999999; pointer-events: none;
-            `;
+            position: fixed; top: ${startY - 5}px; left: ${startX - 5}px;
+            width: 10px; height: 10px; background: rgba(255, 0, 0, 0.4);
+            border: 2px solid white; border-radius: 50%; z-index: 999999; pointer-events: none;
+        `;
             document.body.appendChild(indicator);
 
             window.addEventListener('mousemove', updatePosition);
+            // 监听任意点击以取消
             window.addEventListener('mousedown', handleStopClick, { capture: true });
 
             animate();
         }
 
         function updatePosition(e) {
+            currentX = e.clientX;
             currentY = e.clientY;
         }
 
         function handleStopClick(e) {
+            // 停止滚动逻辑
             stopAutoScroll();
         }
 
@@ -590,6 +676,7 @@
 
             cancelAnimationFrame(animationId);
 
+            // --- 核心修改：恢复指针状态 ---
             document.body.style.cursor = originalCursor;
             document.documentElement.style.cursor = originalCursor;
 
@@ -598,16 +685,35 @@
 
             const indicator = document.getElementById('scroll-indicator');
             if (indicator) indicator.remove();
+            scrollTarget = null;
         }
 
         function animate() {
             if (!isScrolling) return;
+            if (!scrollTarget) return;
 
-            const diff = currentY - startY;
+            const diffX = currentX - startX;
+            const diffY = currentY - startY;
 
-            if (Math.abs(diff) > 15) {
-                const speed = Math.sign(diff) * Math.pow(Math.abs(diff) / 12, 1.5);
-                window.scrollBy({ top: speed, behavior: 'instant' });
+            const scrollData = { behavior: 'instant' };
+            let shouldScroll = false;
+
+            // 15px 的死区，防止微小位移
+            if (Math.abs(diffX) > 15) {
+                scrollData.left = Math.sign(diffX) * Math.pow(Math.abs(diffX) / 12, 1.5);
+                shouldScroll = true;
+            }
+            if (Math.abs(diffY) > 15) {
+                scrollData.top = Math.sign(diffY) * Math.pow(Math.abs(diffY) / 12, 1.5);
+                shouldScroll = true;
+            }
+
+            if (shouldScroll) {
+                if (scrollTarget === window) {
+                    window.scrollBy(scrollData);
+                } else {
+                    scrollTarget.scrollBy(scrollData);
+                }
             }
 
             animationId = requestAnimationFrame(animate);
