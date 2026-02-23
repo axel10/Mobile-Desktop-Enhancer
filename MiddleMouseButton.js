@@ -83,6 +83,8 @@
         document.body.appendChild(indicator);
 
         window.addEventListener('mousemove', updatePosition);
+        // 监听松开按键，校验距离
+        window.addEventListener('mouseup', handleMouseUp, { capture: true, once: true });
         // 监听任意点击以取消
         window.addEventListener('mousedown', handleStopClick, { capture: true });
 
@@ -99,6 +101,18 @@
         stopAutoScroll();
     }
 
+    function handleMouseUp(e) {
+        if (!isScrolling) return;
+
+        const distance = Math.sqrt(
+            Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2)
+        );
+
+        if (distance > 50) {
+            stopAutoScroll();
+        }
+    }
+
     function stopAutoScroll() {
         if (!isScrolling) return;
         isScrolling = false;
@@ -110,6 +124,7 @@
         document.documentElement.style.cursor = originalCursor;
 
         window.removeEventListener('mousemove', updatePosition);
+        window.removeEventListener('mouseup', handleMouseUp, { capture: true });
         window.removeEventListener('mousedown', handleStopClick, { capture: true });
 
         const indicator = document.getElementById('scroll-indicator');
@@ -128,21 +143,22 @@
         let shouldScroll = false;
 
         // 15px 的死区，防止微小位移
-        if (Math.abs(diffX) > 15) {
+        if (Math.abs(diffX) > 7) {
             scrollData.left = Math.sign(diffX) * Math.pow(Math.abs(diffX) / 12, 1.5) * scrollSpeed;
             shouldScroll = true;
         }
-        if (Math.abs(diffY) > 15) {
+        if (Math.abs(diffY) > 7) {
             scrollData.top = Math.sign(diffY) * Math.pow(Math.abs(diffY) / 12, 1.5) * scrollSpeed;
             shouldScroll = true;
         }
 
         if (shouldScroll) {
-            if (scrollTarget === window) {
-                window.scrollBy(scrollDa ta);
-            } else {
-                scrollTarget.scrollBy(scrollData);
-            }
+            // if (scrollTarget === window) {
+            //     window.scrollBy(scrollData);
+            // } else {
+            //     scrollTarget.scrollBy(scrollData);
+            // }
+            scrollTarget.scrollBy(scrollData);
         }
 
         animationId = requestAnimationFrame(animate);
