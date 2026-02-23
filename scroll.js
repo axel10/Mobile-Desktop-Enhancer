@@ -38,6 +38,7 @@
         if (scanTimer) return;
         scanTimer = setTimeout(() => {
             scan();
+            scheduleUpdate();
             scanTimer = null;
         }, 500);
     }
@@ -178,7 +179,18 @@
             const vBot = Math.min(window.innerHeight, r.bottom);
             const vH = vBot - vTop;
 
-            if (sH <= cH || vH <= 0) { ctr.style.display = 'none'; return; }
+            if (sH <= cH || vH <= 0) {
+                ctr.style.display = 'none';
+                return;
+            }
+
+            if (!isWin) {
+                const cs = getComputedStyle(el);
+                if (cs.overflowY === 'hidden' || cs.overflow === 'hidden') {
+                    ctr.style.display = 'none';
+                    return;
+                }
+            }
 
             ctr.style.display = 'flex';
             ctr.style.top = vTop + 'px';

@@ -19,6 +19,8 @@
     let animationId = null;
     let originalCursor = "";
     let scrollTarget = null;
+    const scrollSpeed = 3.0; // 滚动速度系数 (默认为 1.0)
+
 
     // 1. 监听中键按下
     window.addEventListener('mousedown', function (e) {
@@ -127,17 +129,17 @@
 
         // 15px 的死区，防止微小位移
         if (Math.abs(diffX) > 15) {
-            scrollData.left = Math.sign(diffX) * Math.pow(Math.abs(diffX) / 12, 1.5);
+            scrollData.left = Math.sign(diffX) * Math.pow(Math.abs(diffX) / 12, 1.5) * scrollSpeed;
             shouldScroll = true;
         }
         if (Math.abs(diffY) > 15) {
-            scrollData.top = Math.sign(diffY) * Math.pow(Math.abs(diffY) / 12, 1.5);
+            scrollData.top = Math.sign(diffY) * Math.pow(Math.abs(diffY) / 12, 1.5) * scrollSpeed;
             shouldScroll = true;
         }
 
         if (shouldScroll) {
             if (scrollTarget === window) {
-                window.scrollBy(scrollData);
+                window.scrollBy(scrollDa ta);
             } else {
                 scrollTarget.scrollBy(scrollData);
             }
