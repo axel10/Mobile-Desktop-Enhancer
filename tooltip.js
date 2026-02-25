@@ -33,7 +33,10 @@
     }
 
     // 1. 创建自定义提示框元素
-    const tooltip = document.createElement('div');
+    const tooltip = document.createElement('div'); // 容器层
+    const tooltipContent = document.createElement('div'); // 内容层
+    tooltip.appendChild(tooltipContent);
+
     Object.assign(tooltip.style, {
         position: 'fixed',
         zIndex: '999999',
@@ -44,10 +47,22 @@
         borderRadius: '4px',
         pointerEvents: 'none',
         visibility: 'hidden',
-        whiteSpace: 'nowrap',
         boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        transition: 'opacity 0.2s ease'
+        transition: 'opacity 0.2s ease',
+        maxWidth: '320px', // 包含 padding 的总宽度
+        boxSizing: 'border-box'
     });
+
+    Object.assign(tooltipContent.style, {
+        maxWidth: '300px',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        display: '-webkit-box',
+        WebkitLineClamp: '5',
+        WebkitBoxOrient: 'vertical',
+        wordBreak: 'break-all'
+    });
+
     document.body.appendChild(tooltip);
 
     let hoverTimer = null; // 用于记录延迟的定时器
@@ -98,7 +113,7 @@
 
         // 设置 1 秒 (1000毫秒) 延迟
         hoverTimer = setTimeout(() => {
-            tooltip.textContent = text;
+            tooltipContent.textContent = text;
             tooltip.style.visibility = 'visible';
             tooltip.style.opacity = '1';
             // 文本内容填入后，计算宽高并更新位置
@@ -129,6 +144,13 @@
             tooltip.style.visibility = 'hidden';
             tooltip.style.opacity = '0';
         }
+    });
+
+    // 5. 点击时隐藏提示框
+    document.addEventListener('mousedown', () => {
+        if (hoverTimer) clearTimeout(hoverTimer);
+        tooltip.style.visibility = 'hidden';
+        tooltip.style.opacity = '0';
     });
 
 })();

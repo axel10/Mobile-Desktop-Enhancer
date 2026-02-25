@@ -37,7 +37,10 @@
         }
 
         // 1. 创建自定义提示框元素
-        const tooltip = document.createElement('div');
+        const tooltip = document.createElement('div'); // 容器层
+        const tooltipContent = document.createElement('div'); // 内容层
+        tooltip.appendChild(tooltipContent);
+
         Object.assign(tooltip.style, {
             position: 'fixed',
             zIndex: '999999',
@@ -48,10 +51,22 @@
             borderRadius: '4px',
             pointerEvents: 'none',
             visibility: 'hidden',
-            whiteSpace: 'nowrap',
             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-            transition: 'opacity 0.2s ease'
+            transition: 'opacity 0.2s ease',
+            maxWidth: '320px', // 包含 padding 的总宽度
+            boxSizing: 'border-box'
         });
+
+        Object.assign(tooltipContent.style, {
+            maxWidth: '300px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: '5',
+            WebkitBoxOrient: 'vertical',
+            wordBreak: 'break-all'
+        });
+
         document.body.appendChild(tooltip);
 
         let hoverTimer = null; // 用于记录延迟的定时器
@@ -102,7 +117,7 @@
 
             // 设置 1 秒 (1000毫秒) 延迟
             hoverTimer = setTimeout(() => {
-                tooltip.textContent = text;
+                tooltipContent.textContent = text;
                 tooltip.style.visibility = 'visible';
                 tooltip.style.opacity = '1';
                 // 文本内容填入后，计算宽高并更新位置
@@ -133,6 +148,13 @@
                 tooltip.style.visibility = 'hidden';
                 tooltip.style.opacity = '0';
             }
+        });
+
+        // 5. 点击时隐藏提示框
+        document.addEventListener('mousedown', () => {
+            if (hoverTimer) clearTimeout(hoverTimer);
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.opacity = '0';
         });
     })();
 
@@ -312,7 +334,16 @@
             skipSize: 100
         };
 
-        const processed = new WeakSet();
+        let processed = new WeakSet();
+
+        // Clear processed on <a> click to allow re-scanning in SPAs
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('a')) {
+                processed = new WeakSet();
+                throttledScan();
+            }
+        }, true);
+
         const instances = [];
         let rafPending = false;
         let scanTimer = null;
@@ -396,9 +427,12 @@
             const el = isWin ? document.documentElement : target;
 
             if (processed.has(el)) return;
+            // Skip if already has custom scrollbar or contains simplebar direct child
+            if (!isWin && (el.classList.contains('gm-no-sb') || el.querySelector(':scope > [class*="simplebar"]'))) return;
             if (!isWin && (el === document.documentElement || el === document.body)) return;
             if (!isWin && el.clientHeight < CONFIG.skipSize) return;
             processed.add(el);
+
 
             // Create scrollbar DOM
             const ctr = document.createElement('div');
@@ -584,7 +618,7 @@
                 childList: true,
                 subtree: true,
                 attributes: true,
-                attributeFilter: ['style', 'class']
+                // attributeFilter: ['style', 'class']
             });
         }
 
@@ -604,6 +638,8 @@
         let animationId = null;
         let originalCursor = "";
         let scrollTarget = null;
+        const scrollSpeed = 1.5; // 滚动速度系数 (默认为 1.0)
+
 
         // 1. 监听中键按下
         window.addEventListener('mousedown', function (e) {
@@ -666,6 +702,8 @@
             document.body.appendChild(indicator);
 
             window.addEventListener('mousemove', updatePosition);
+            // 监听松开按键，校验距离
+            window.addEventListener('mouseup', handleMouseUp, { capture: true, once: true });
             // 监听任意点击以取消
             window.addEventListener('mousedown', handleStopClick, { capture: true });
 
@@ -682,6 +720,18 @@
             stopAutoScroll();
         }
 
+        function handleMouseUp(e) {
+            if (!isScrolling) return;
+
+            const distance = Math.sqrt(
+                Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2)
+            );
+
+            if (distance > 25) {
+                stopAutoScroll();
+            }
+        }
+
         function stopAutoScroll() {
             if (!isScrolling) return;
             isScrolling = false;
@@ -693,6 +743,7 @@
             document.documentElement.style.cursor = originalCursor;
 
             window.removeEventListener('mousemove', updatePosition);
+            window.removeEventListener('mouseup', handleMouseUp, { capture: true });
             window.removeEventListener('mousedown', handleStopClick, { capture: true });
 
             const indicator = document.getElementById('scroll-indicator');
@@ -711,21 +762,22 @@
             let shouldScroll = false;
 
             // 15px 的死区，防止微小位移
-            if (Math.abs(diffX) > 15) {
-                scrollData.left = Math.sign(diffX) * Math.pow(Math.abs(diffX) / 12, 1.5);
+            if (Math.abs(diffX) > 7) {
+                scrollData.left = Math.sign(diffX) * Math.pow(Math.abs(diffX) / 12, 1.5) * scrollSpeed;
                 shouldScroll = true;
             }
-            if (Math.abs(diffY) > 15) {
-                scrollData.top = Math.sign(diffY) * Math.pow(Math.abs(diffY) / 12, 1.5);
+            if (Math.abs(diffY) > 7) {
+                scrollData.top = Math.sign(diffY) * Math.pow(Math.abs(diffY) / 12, 1.5) * scrollSpeed;
                 shouldScroll = true;
             }
 
             if (shouldScroll) {
-                if (scrollTarget === window) {
-                    window.scrollBy(scrollData);
-                } else {
-                    scrollTarget.scrollBy(scrollData);
-                }
+                // if (scrollTarget === window) {
+                //     window.scrollBy(scrollData);
+                // } else {
+                //     scrollTarget.scrollBy(scrollData);
+                // }
+                scrollTarget.scrollBy(scrollData);
             }
 
             animationId = requestAnimationFrame(animate);

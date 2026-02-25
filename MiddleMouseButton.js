@@ -19,7 +19,7 @@
     let animationId = null;
     let originalCursor = "";
     let scrollTarget = null;
-    const scrollSpeed = 3.0; // 滚动速度系数 (默认为 1.0)
+    const scrollSpeed = 1.5; // 滚动速度系数 (默认为 1.0)
 
 
     // 1. 监听中键按下
@@ -108,7 +108,7 @@
             Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2)
         );
 
-        if (distance > 50) {
+        if (distance > 25) {
             stopAutoScroll();
         }
     }

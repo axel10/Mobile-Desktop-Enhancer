@@ -25,7 +25,16 @@
         skipSize: 100
     };
 
-    const processed = new WeakSet();
+    let processed = new WeakSet();
+
+    // Clear processed on <a> click to allow re-scanning in SPAs
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('a')) {
+            processed = new WeakSet();
+            throttledScan();
+        }
+    }, true);
+
     const instances = [];
     let rafPending = false;
     let scanTimer = null;
@@ -109,9 +118,12 @@
         const el = isWin ? document.documentElement : target;
 
         if (processed.has(el)) return;
+        // Skip if already has custom scrollbar or contains simplebar direct child
+        if (!isWin && (el.classList.contains('gm-no-sb') || el.querySelector(':scope > [class*="simplebar"]'))) return;
         if (!isWin && (el === document.documentElement || el === document.body)) return;
         if (!isWin && el.clientHeight < CONFIG.skipSize) return;
         processed.add(el);
+
 
         // Create scrollbar DOM
         const ctr = document.createElement('div');
@@ -297,7 +309,7 @@
             childList: true,
             subtree: true,
             attributes: true,
-            attributeFilter: ['style', 'class']
+            // attributeFilter: ['style', 'class']
         });
     }
 
