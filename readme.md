@@ -1,49 +1,51 @@
-# Mobile Desktop Enhancer (桌面增强套件)
+[中文版](zh-readme.md)
 
-为手机端能运行脚本的浏览器添加桌面浏览器的一些增强功能，提升操作体验。
+# Mobile Desktop Enhancer
+
+Enhance your mobile browsing experience with desktop-browser-like features on mobile browsers that support user scripts.
 
 
-## 🌟 核心功能
+## 🌟 Core Features
 
-### 1. 工具提示 (Smart Tooltips)
-- **自定义样式**：简约半透明深色设计，优于浏览器原生样式。
-- **边界检测**：自动调整位置，确保提示框始终在可视区域内。
+### 1. Smart Tooltips
+- **Custom Styles**: Minimalist translucent dark design, fully customizable.
+- **Boundary Detection**: Automatically adjusts position to ensure tooltips stay within the viewport.
 
 ![Image](https://github.com/user-attachments/assets/adb9d82f-a7aa-4e29-9bfb-4b9ab64fdcc4)
 
-### 2. Shift 文本选择 (Shift Selection)
-- **快捷操作**：按住 `Shift` 键即可进入选择模式。
-- **全场景兼容**：完美支持标准输入框 (`input`, `textarea`) 及富文本编辑器。
+### 2. Shift Selection
+- **Shortcut**: Simply hold the `Shift` key to enter selection mode.
+- **Full Compatibility**: Works seamlessly with standard inputs (`input`, `textarea`) and rich text editors.
 
 ![Image](https://github.com/user-attachments/assets/6df6f02e-a93a-4e75-a024-ae997c67fa8e)
 
-### 3. 全桌面样式滚动条 (Desktop Scrollbars)
-- **智能隐藏**：仅在滚动或悬停时显示，不遮挡内容。
-- **多级交互**：支持点击轨道翻页、长按箭头平滑滚动及滚轮缩放。
+### 3. Desktop Scrollbars
+- **Smart Hiding**: Only visible during scrolling or hovering to avoid obstructing content.
+- **Advanced Interaction**: Supports track-click paging, long-press arrows for smooth scrolling, and scroll wheel zooming.
 
 ![Image](https://github.com/user-attachments/assets/1af51545-07f3-417a-acfe-9a73eea12889)
 
-### 4. 中键增强 (Middle Mouse Power)
-- **超链接跳转**：中键点击链接快速在新标签页打开。
-- **平滑自滚动**：中键点击空白处开启自动滚动模式，随鼠标移动速度自动调整，带有视觉指示点。
+### 4. Middle Mouse Power
+- **Quick Jump**: Middle-click links to open them instantly in a new tab.
+- **Smooth Auto-Scroll**: Middle-click empty areas to toggle auto-scroll mode, which adjusts speed based on mouse movement and includes a visual indicator.
 
 ![Image](https://github.com/user-attachments/assets/618aa63e-4735-460c-8a98-92427515c601)
 
-### 5. 滚轮网页缩放 (Alt+Scroll Zoom)
-- **快捷缩放**：按住 `Alt` 键滚动滚轮即可实时放大/缩小网页。
-- **持久化记忆**：自动记录每个域名的缩放设置，刷新页面依然有效。
+### 5. Alt+Scroll Zoom
+- **Quick Zoom**: Hold the `Alt` key and scroll the wheel to zoom in or out in real-time.
+- **Persistent Memory**: Automatically remembers zoom settings for each domain, even after a page refresh.
 
 ![Image](https://github.com/user-attachments/assets/9e70d149-ffca-43d2-8862-29b76fd94671)
 
-## 🚀 安装
+## 🚀 Installation
 
 [greasyfork](https://greasyfork.org/en/scripts/567546)
 
-## 🛠️ 配置与开关
+## 🛠️ Configuration
 
-- **站点开关**：点击脚本管理器的菜单，可以针对当前域名快速 `禁用/启用` 增强功能。
-- **默认参数**：可在脚本开头的 `CONFIG` 对象中调整滚动条宽度、滚动速度等参数。
+- **Site Toggle**: Use the script manager's menu to quickly `Enable/Disable` enhancements for the current domain.
+- **Default Parameters**: Adjust parameters like scrollbar width and scroll speed in the `CONFIG` object at the beginning of the script.
 
-## 📝 许可
+## 📝 License
 
 MIT License
