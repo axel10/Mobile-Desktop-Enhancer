@@ -693,7 +693,7 @@
         let animationId = null;
         let scrollTarget = null;
         const CONFIG = GLOBAL_CONFIG.MOUSE;
-
+        let originalCursor = document.body.style.cursor;
 
         // 1. 监听中键按下
         window.addEventListener('mousedown', function (e) {
