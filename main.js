@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Mobile Desktop Enhancer
+// @name         Mobile Desktop Enhancer: 为手机浏览器添加pc浏览器的功能
 // @namespace    http://tampermonkey.net/
 // @version      1.0.1
 // @description  桌面增强套件：工具提示 | Shift文本选择 | 自定义滚动条 | 中键自动滚动 | 滚动缩放
