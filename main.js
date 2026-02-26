@@ -13,6 +13,53 @@
 (function () {
     'use strict';
 
+    /* ============================================
+       用户自定义配置区 (GLOBAL_CONFIG)
+       ============================================ */
+    const GLOBAL_CONFIG = {
+        // 模块1: 工具提示配置
+        TOOLTIP: {
+            delay: 1000,             // 提示框显示延迟 (毫秒)
+            fontSize: '13px',        // 字体大小
+            backgroundColor: 'rgba(50, 50, 50, 0.9)', // 背景颜色
+            textColor: '#ffffff',    // 文字颜色
+            padding: '8px 12px',     // 内边距
+            borderRadius: '6px',     // 圆角
+            maxWidth: '320px',       // 最大宽度
+            offset: 15               // 提示框相对于鼠标的偏移量
+        },
+
+        // 模块3: 桌面样式滚动条配置
+        SCROLL: {
+            width: 12,               // 滚动条宽度
+            arrowHeight: 20,         // 上下箭头高度
+            stepSize: 100,           // 点击箭头的滚动步长
+            scrollSpeed: 15,         // 长按箭头的滚动速度
+            longPressDelay: 500,     // 长按触发延迟 (毫秒)
+            zIndex: 999999,          // 层级
+            color: 'rgba(128,128,128,0.5)', // 滚动条颜色
+            hoverBg: 'rgba(128,128,128,0.1)', // 鼠标悬停背景色
+            minThumb: 20,            // 滑块最小高度
+            skipSize: 100            // 忽略过小容器的阈值 (高度小于该值不显示滚动条)
+        },
+
+        // 模块4: 中键增强配置
+        MOUSE: {
+            scrollSpeed: 1.5,        // 自动滚动速度倍率
+            deadZone: 7,             // 鼠标移动死区 (像素，小于此值不滚动)
+            indicatorColor: 'rgba(255, 0, 0, 0.4)', // 视觉指示点颜色
+            indicatorSize: 10        // 视觉指示点大小
+        },
+
+        // 模块5: 滚轮缩放配置
+        ZOOM: {
+            step: 0.1,               // 缩放步进值 (10%)
+            minScale: 0.3,           // 最小缩放比例 (30%)
+            maxScale: 5.0,           // 最大缩放比例 (500%)
+            indicatorDelay: 2000     // 缩放提示框消失延迟 (毫秒)
+        }
+    };
+
     const siteId = location.host;
     const isDisabled = GM_getValue(`disabled_${siteId}`, false);
 
@@ -62,16 +109,16 @@
         Object.assign(tooltip.style, {
             position: 'fixed',
             zIndex: '999999',
-            padding: '5px 10px',
-            background: 'rgba(50, 50, 50, 0.9)',
-            color: '#fff',
-            fontSize: '12px',
-            borderRadius: '4px',
+            padding: GLOBAL_CONFIG.TOOLTIP.padding,
+            backgroundColor: GLOBAL_CONFIG.TOOLTIP.backgroundColor,
+            color: GLOBAL_CONFIG.TOOLTIP.textColor,
+            fontSize: GLOBAL_CONFIG.TOOLTIP.fontSize,
+            borderRadius: GLOBAL_CONFIG.TOOLTIP.borderRadius,
             pointerEvents: 'none',
             visibility: 'hidden',
             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             transition: 'opacity 0.2s ease',
-            maxWidth: '320px', // 包含 padding 的总宽度
+            maxWidth: GLOBAL_CONFIG.TOOLTIP.maxWidth, // 包含 padding 的总宽度
             boxSizing: 'border-box'
         });
 
@@ -93,7 +140,7 @@
 
         // 统一处理位置更新和边界检测的函数
         function updateTooltipPosition() {
-            const offset = 15;
+            const offset = GLOBAL_CONFIG.TOOLTIP.offset;
             let x = currentX + offset;
             let y = currentY + offset;
 
@@ -133,14 +180,14 @@
             // 清除之前的定时器（防止快速滑动时触发多个）
             if (hoverTimer) clearTimeout(hoverTimer);
 
-            // 设置 1 秒 (1000毫秒) 延迟
+            // 设置延迟
             hoverTimer = setTimeout(() => {
                 tooltipContent.textContent = text;
                 tooltip.style.visibility = 'visible';
                 tooltip.style.opacity = '1';
                 // 文本内容填入后，计算宽高并更新位置
                 updateTooltipPosition();
-            }, 1000);
+            }, GLOBAL_CONFIG.TOOLTIP.delay);
         });
 
         // 3. 监听鼠标移动
@@ -177,7 +224,7 @@
     })();
 
     /* ============================================
-       模块2: Shift切换文本选择模式
+       模块2: Shift文本选择
        ============================================ */
     (function KeyModule() {
         let selectionMode = false;
@@ -231,12 +278,12 @@
                     if (type === 'input') {
                         anchorIndex = el.selectionDirection === 'backward' ? el.selectionEnd : el.selectionStart;
                         currentIndex = el.selectionDirection === 'backward' ? el.selectionStart : el.selectionEnd;
-                    }
+                        }
 
                     // el.style.outline = '2px dashed #007bff'; // 蓝色虚线视觉提示
+                    }
                 }
-            }
-        }, true);
+            }, true);
 
         // 监听按键释放 (松开 Shift 退出模式)
         document.addEventListener('keyup', function (e) {
@@ -339,18 +386,7 @@
        模块3: 全桌面样式滚动条 (带箭头)
        ============================================ */
     (function ScrollModule() {
-        const CONFIG = {
-            width: 12,
-            arrowHeight: 20,
-            stepSize: 100,
-            scrollSpeed: 15,
-            longPressDelay: 500,
-            zIndex: 999999,
-            color: 'rgba(128,128,128,0.5)',
-            hoverBg: 'rgba(128,128,128,0.1)',
-            minThumb: 20,
-            skipSize: 100
-        };
+        const CONFIG = GLOBAL_CONFIG.SCROLL;
 
         let processed = new WeakSet();
 
@@ -654,9 +690,8 @@
         let currentX = 0;
         let currentY = 0;
         let animationId = null;
-        let originalCursor = "";
         let scrollTarget = null;
-        const scrollSpeed = 1.5; // 滚动速度系数 (默认为 1.0)
+        const CONFIG = GLOBAL_CONFIG.MOUSE;
 
 
         // 1. 监听中键按下
@@ -713,8 +748,8 @@
             const indicator = document.createElement('div');
             indicator.id = 'scroll-indicator';
             indicator.style = `
-            position: fixed; top: ${startY - 5}px; left: ${startX - 5}px;
-            width: 10px; height: 10px; background: rgba(255, 0, 0, 0.4);
+            position: fixed; top: ${startY - CONFIG.indicatorSize / 2}px; left: ${startX - CONFIG.indicatorSize / 2}px;
+            width: ${CONFIG.indicatorSize}px; height: ${CONFIG.indicatorSize}px; background: ${CONFIG.indicatorColor};
             border: 2px solid white; border-radius: 50%; z-index: 999999; pointer-events: none;
         `;
             document.documentElement.appendChild(indicator);
@@ -780,21 +815,16 @@
             let shouldScroll = false;
 
             // 15px 的死区，防止微小位移
-            if (Math.abs(diffX) > 7) {
-                scrollData.left = Math.sign(diffX) * Math.pow(Math.abs(diffX) / 12, 1.5) * scrollSpeed;
+            if (Math.abs(diffX) > CONFIG.deadZone) {
+                scrollData.left = Math.sign(diffX) * Math.pow(Math.abs(diffX) / 12, 1.5) * CONFIG.scrollSpeed;
                 shouldScroll = true;
             }
-            if (Math.abs(diffY) > 7) {
-                scrollData.top = Math.sign(diffY) * Math.pow(Math.abs(diffY) / 12, 1.5) * scrollSpeed;
+            if (Math.abs(diffY) > CONFIG.deadZone) {
+                scrollData.top = Math.sign(diffY) * Math.pow(Math.abs(diffY) / 12, 1.5) * CONFIG.scrollSpeed;
                 shouldScroll = true;
             }
 
             if (shouldScroll) {
-                // if (scrollTarget === window) {
-                //     window.scrollBy(scrollData);
-                // } else {
-                //     scrollTarget.scrollBy(scrollData);
-                // }
                 scrollTarget.scrollBy(scrollData);
             }
 
@@ -839,7 +869,7 @@
             if (zoomTimer) clearTimeout(zoomTimer);
             zoomTimer = setTimeout(() => {
                 indicator.style.opacity = '0';
-            }, 2000);
+            }, GLOBAL_CONFIG.ZOOM.indicatorDelay);
         }
 
         // Apply initial zoom
@@ -853,15 +883,15 @@
                 e.preventDefault();
 
                 // 步进值
-                const step = 0.1;
+                const step = GLOBAL_CONFIG.ZOOM.step;
                 if (e.deltaY < 0) {
                     currentZoom += step;
                 } else {
                     currentZoom -= step;
                 }
 
-                // 限制缩放范围 (30% - 500%)
-                currentZoom = Math.min(Math.max(0.3, currentZoom), 5);
+                // 限制缩放范围
+                currentZoom = Math.min(Math.max(GLOBAL_CONFIG.ZOOM.minScale, currentZoom), GLOBAL_CONFIG.ZOOM.maxScale);
                 currentZoom = parseFloat(currentZoom.toFixed(2)); // Avoid floating point precision issues
 
                 // 应用、记录并显示缩放
