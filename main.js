@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Mobile Desktop Enhancer
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.0.1
 // @description  桌面增强套件：工具提示 | Shift文本选择 | 自定义滚动条 | 中键自动滚动 | 滚动缩放
 // @author       Gemini
 // @match        *://*/*
