@@ -5,11 +5,29 @@
 // @description  桌面增强套件：智能工具提示 | Shift文本选择模式 | 自定义滚动条 | 中键增强
 // @author       Gemini
 // @match        *://*/*
-// @grant        none
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_registerMenuCommand
 // ==/UserScript==
 
 (function () {
     'use strict';
+
+    const siteId = location.host;
+    const isDisabled = GM_getValue(`disabled_${siteId}`, false);
+
+    if (isDisabled) {
+        GM_registerMenuCommand(`启用 ${siteId} 的增强功能`, () => {
+            GM_setValue(`disabled_${siteId}`, false);
+            location.reload();
+        });
+        return; // 禁用则不运行整个脚本
+    }
+
+    GM_registerMenuCommand(`禁用 ${siteId} 的增强功能`, () => {
+        GM_setValue(`disabled_${siteId}`, true);
+        location.reload();
+    });
 
     /* ============================================
        模块1: 智能工具提示 (延迟显示版)
@@ -67,7 +85,7 @@
             wordBreak: 'break-all'
         });
 
-        document.body.appendChild(tooltip);
+        document.documentElement.appendChild(tooltip);
 
         let hoverTimer = null; // 用于记录延迟的定时器
         let currentX = 0;      // 记录当前鼠标 X 坐标
@@ -455,7 +473,7 @@
 
             trk.appendChild(thb);
             ctr.append(up, trk, down);
-            document.body.appendChild(ctr);
+            document.documentElement.appendChild(ctr);
 
             // Hide native scrollbar
             if (isWin) {
@@ -699,7 +717,7 @@
             width: 10px; height: 10px; background: rgba(255, 0, 0, 0.4);
             border: 2px solid white; border-radius: 50%; z-index: 999999; pointer-events: none;
         `;
-            document.body.appendChild(indicator);
+            document.documentElement.appendChild(indicator);
 
             window.addEventListener('mousemove', updatePosition);
             // 监听松开按键，校验距离
@@ -783,5 +801,34 @@
             animationId = requestAnimationFrame(animate);
         }
     })();
+
+    /* ============================================
+       模块5: 滚轮控制网页放大缩小
+       ============================================ */
+    (function ZoomModule() {
+        let currentZoom = parseFloat(document.body.style.zoom) || 1.0;
+
+        window.addEventListener('wheel', (e) => {
+            if (e.altKey) {
+                e.preventDefault();
+
+                // 步进值
+                const step = 0.1;
+                if (e.deltaY < 0) {
+                    currentZoom += step;
+                } else {
+                    currentZoom -= step;
+                }
+
+                // 限制缩放范围 (30% - 500%)
+                currentZoom = Math.min(Math.max(0.3, currentZoom), 5);
+
+                // 应用缩放
+                document.body.style.zoom = currentZoom;
+                window.dispatchEvent(new Event('resize'));
+            }
+        }, { passive: false });
+    })();
+
 
 })();
