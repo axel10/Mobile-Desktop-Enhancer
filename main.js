@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Desktop Enhancement Suite
+// @name         Mobile Desktop Enhancer
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  桌面增强套件：智能工具提示 | Shift文本选择 | 自定义滚动条 | 中键增强 | 滚动缩放
@@ -808,6 +808,39 @@
     (function ZoomModule() {
         const zoomKey = `zoom_${location.host}`;
         let currentZoom = GM_getValue(zoomKey, 1.0);
+        let zoomTimer = null;
+
+        // Create indicator element
+        const indicator = document.createElement('div');
+        Object.assign(indicator.style, {
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '8px 20px',
+            background: 'rgba(0, 0, 0, 0.75)',
+            color: 'white',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            zIndex: '999999',
+            pointerEvents: 'none',
+            opacity: '0',
+            transition: 'opacity 0.3s ease',
+            backdropFilter: 'blur(4px)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        });
+        document.documentElement.appendChild(indicator);
+
+        function showIndicator(zoom) {
+            indicator.textContent = `缩放: ${Math.round(zoom * 100)}%`;
+            indicator.style.opacity = '1';
+
+            if (zoomTimer) clearTimeout(zoomTimer);
+            zoomTimer = setTimeout(() => {
+                indicator.style.opacity = '0';
+            }, 2000);
+        }
 
         // Apply initial zoom
         if (currentZoom !== 1.0) {
@@ -831,10 +864,11 @@
                 currentZoom = Math.min(Math.max(0.3, currentZoom), 5);
                 currentZoom = parseFloat(currentZoom.toFixed(2)); // Avoid floating point precision issues
 
-                // 应用并记录缩放
+                // 应用、记录并显示缩放
                 document.body.style.zoom = currentZoom;
                 GM_setValue(zoomKey, currentZoom);
                 window.dispatchEvent(new Event('resize'));
+                showIndicator(currentZoom);
             }
         }, { passive: false });
     })();
