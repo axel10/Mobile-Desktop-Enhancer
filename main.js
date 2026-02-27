@@ -709,7 +709,7 @@
         window.addEventListener('mousedown', function (e) {
             if (e.button !== 1) return; // 只处理中键 (0:左, 1:中, 2:右)
 
-            const target = e.target.closest('a');
+            const target = e.composedPath()[0].closest('a');
             if (target && target.href) {
                 // 如果是链接，不做拦截，让浏览器执行默认的新标签打开逻辑
                 return;
