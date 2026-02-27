@@ -41,7 +41,7 @@
             stepSize: 100,           // Scroll step on arrow click | 点击箭头的滚动步长
             scrollSpeed: 15,         // Scroll speed on long press | 长按箭头的滚动速度
             longPressDelay: 500,     // Long press trigger delay (ms) | 长按触发延迟 (毫秒)
-            zIndex: 999999,          // Layer index | 层级
+            zIndex: 99,          // Layer index | 层级
             color: 'rgba(128,128,128,0.5)', // Scrollbar color | 滚动条颜色
             hoverBg: 'rgba(128,128,128,0.1)', // Hover background color | 鼠标悬停背景色
             minThumb: 20,            // Min thumb height | 滑块最小高度
