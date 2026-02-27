@@ -8,6 +8,7 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_registerMenuCommand
+// @noframes
 // @license      MIT
 // ==/UserScript==
 
@@ -15,64 +16,73 @@
     'use strict';
 
     /* ============================================
-       用户自定义配置区 (GLOBAL_CONFIG)
+       User Configuration (GLOBAL_CONFIG)
+       用户自定义配置区
        ============================================ */
     const GLOBAL_CONFIG = {
+        // Module 1: Tooltip Configuration
         // 模块1: 工具提示配置
         TOOLTIP: {
-            delay: 1000,             // 提示框显示延迟 (毫秒)
-            fontSize: '13px',        // 字体大小
-            backgroundColor: 'rgba(50, 50, 50, 0.9)', // 背景颜色
-            textColor: '#ffffff',    // 文字颜色
-            padding: '8px 12px',     // 内边距
-            borderRadius: '6px',     // 圆角
-            maxWidth: '320px',       // 最大宽度
-            offset: 15               // 提示框相对于鼠标的偏移量
+            delay: 1000,             // Tooltip display delay (ms) | 提示框显示延迟 (毫秒)
+            fontSize: '13px',        // Font size | 字体大小
+            backgroundColor: 'rgba(50, 50, 50, 0.9)', // Background color | 背景颜色
+            textColor: '#ffffff',    // Text color | 文字颜色
+            padding: '8px 12px',     // Padding | 内边距
+            borderRadius: '6px',     // Border radius | 圆角
+            maxWidth: '320px',       // Max width | 最大宽度
+            offset: 15               // Tooltip offset from mouse | 提示框相对于鼠标的偏移量
         },
 
+        // Module 3: Desktop Scrollbar Configuration
         // 模块3: 桌面样式滚动条配置
         SCROLL: {
-            width: 12,               // 滚动条宽度
-            arrowHeight: 20,         // 上下箭头高度
-            stepSize: 100,           // 点击箭头的滚动步长
-            scrollSpeed: 15,         // 长按箭头的滚动速度
-            longPressDelay: 500,     // 长按触发延迟 (毫秒)
-            zIndex: 999999,          // 层级
-            color: 'rgba(128,128,128,0.5)', // 滚动条颜色
-            hoverBg: 'rgba(128,128,128,0.1)', // 鼠标悬停背景色
-            minThumb: 20,            // 滑块最小高度
-            skipSize: 100            // 忽略过小容器的阈值 (高度小于该值不显示滚动条)
+            width: 12,               // Scrollbar width | 滚动条宽度
+            arrowHeight: 20,         // Arrow height | 上下箭头高度
+            stepSize: 100,           // Scroll step on arrow click | 点击箭头的滚动步长
+            scrollSpeed: 15,         // Scroll speed on long press | 长按箭头的滚动速度
+            longPressDelay: 500,     // Long press trigger delay (ms) | 长按触发延迟 (毫秒)
+            zIndex: 999999,          // Layer index | 层级
+            color: 'rgba(128,128,128,0.5)', // Scrollbar color | 滚动条颜色
+            hoverBg: 'rgba(128,128,128,0.1)', // Hover background color | 鼠标悬停背景色
+            minThumb: 20,            // Min thumb height | 滑块最小高度
+            skipSize: 100            // Container threshold (don't show if height < this) | 忽略过小容器的阈值
         },
 
+        // Module 4: Middle Click Enhancement Configuration
         // 模块4: 中键增强配置
         MOUSE: {
-            scrollSpeed: 1.5,        // 自动滚动速度倍率
-            deadZone: 7,             // 鼠标移动死区 (像素，小于此值不滚动)
-            indicatorColor: 'rgba(255, 0, 0, 0.4)', // 视觉指示点颜色
-            indicatorSize: 10        // 视觉指示点大小
+            scrollSpeed: 1.5,        // Auto scroll speed multiplier | 自动滚动速度倍率
+            deadZone: 7,             // Mouse movement dead zone (px) | 鼠标移动死区 (像素)
+            indicatorColor: 'rgba(255, 0, 0, 0.4)', // Indicator color | 视觉指示点颜色
+            indicatorSize: 10        // Indicator size | 视觉指示点大小
         },
 
+        // Module 5: Wheel Zoom Configuration
         // 模块5: 滚轮缩放配置
         ZOOM: {
-            step: 0.1,               // 缩放步进值 (10%)
-            minScale: 0.3,           // 最小缩放比例 (30%)
-            maxScale: 5.0,           // 最大缩放比例 (500%)
-            indicatorDelay: 2000     // 缩放提示框消失延迟 (毫秒)
+            step: 0.1,               // Zoom step (10%) | 缩放步进值 (10%)
+            minScale: 0.3,           // Min scale (30%) | 最小缩放比例 (30%)
+            maxScale: 5.0,           // Max scale (500%) | 最大缩放比例 (500%)
+            indicatorDelay: 2000     // Indicator disappearance delay (ms) | 缩放提示框消失延迟 (毫秒)
         }
     };
 
     const siteId = location.host;
     const isDisabled = GM_getValue(`disabled_${siteId}`, false);
 
+    // Language Detection | 语言检测
+    const IS_CHINESE = navigator.language.startsWith('zh');
+    const t = (zh, en) => IS_CHINESE ? zh : en;
+
     if (isDisabled) {
-        GM_registerMenuCommand(`启用 ${siteId} 的增强功能`, () => {
+        GM_registerMenuCommand(t(`启用 ${siteId} 的增强功能`, `Enable enhanced features for ${siteId}`), () => {
             GM_setValue(`disabled_${siteId}`, false);
             location.reload();
         });
         return; // 禁用则不运行整个脚本
     }
 
-    GM_registerMenuCommand(`禁用 ${siteId} 的增强功能`, () => {
+    GM_registerMenuCommand(t(`禁用 ${siteId} 的增强功能`, `Disable enhanced features for ${siteId}`), () => {
         GM_setValue(`disabled_${siteId}`, true);
         location.reload();
     });
@@ -279,12 +289,12 @@
                     if (type === 'input') {
                         anchorIndex = el.selectionDirection === 'backward' ? el.selectionEnd : el.selectionStart;
                         currentIndex = el.selectionDirection === 'backward' ? el.selectionStart : el.selectionEnd;
-                        }
+                    }
 
                     // el.style.outline = '2px dashed #007bff'; // 蓝色虚线视觉提示
-                    }
                 }
-            }, true);
+            }
+        }, true);
 
         // 监听按键释放 (松开 Shift 退出模式)
         document.addEventListener('keyup', function (e) {
@@ -864,7 +874,7 @@
         document.documentElement.appendChild(indicator);
 
         function showIndicator(zoom) {
-            indicator.textContent = `缩放: ${Math.round(zoom * 100)}%`;
+            indicator.textContent = `${t('缩放', 'Zoom')}: ${Math.round(zoom * 100)}%`;
             indicator.style.opacity = '1';
 
             if (zoomTimer) clearTimeout(zoomTimer);
