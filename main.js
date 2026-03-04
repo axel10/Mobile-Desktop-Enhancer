@@ -851,6 +851,13 @@
         let currentZoom = GM_getValue(zoomKey, 1.0);
         let zoomTimer = null;
 
+        // Panning state
+        let isPanning = false;
+        let startX = 0, startY = 0;
+        let lastScrollX = 0, lastScrollY = 0;
+        let hasMoved = false;
+        let originalCursor = '';
+
         // Create indicator element
         const indicator = document.createElement('div');
         Object.assign(indicator.style, {
@@ -883,17 +890,34 @@
             }, GLOBAL_CONFIG.ZOOM.indicatorDelay);
         }
 
-        // Apply initial zoom
-        if (currentZoom !== 1.0) {
-            document.body.style.zoom = currentZoom;
+        function applyZoom(zoom) {
+            // Apply scale via transform
+            document.body.style.transform = `scale(${zoom})`;
+            document.body.style.transformOrigin = '0 0';
+
+            // When zooming out (< 1), adjust body dimensions to fill the empty space
+            if (zoom < 1) {
+                const percentage = (100 / zoom).toFixed(2);
+                document.body.style.width = `${percentage}%`;
+                document.body.style.height = `${percentage}%`;
+            } else {
+                document.body.style.width = '';
+                document.body.style.height = '';
+            }
+
             window.dispatchEvent(new Event('resize'));
         }
 
+        // Apply initial zoom
+        if (currentZoom !== 1.0) {
+            applyZoom(currentZoom);
+        }
+
+        // --- Zooming logic ---
         window.addEventListener('wheel', (e) => {
             if (e.altKey) {
                 e.preventDefault();
 
-                // 步进值
                 const step = GLOBAL_CONFIG.ZOOM.step;
                 if (e.deltaY < 0) {
                     currentZoom += step;
@@ -901,17 +925,66 @@
                     currentZoom -= step;
                 }
 
-                // 限制缩放范围
                 currentZoom = Math.min(Math.max(GLOBAL_CONFIG.ZOOM.minScale, currentZoom), GLOBAL_CONFIG.ZOOM.maxScale);
-                currentZoom = parseFloat(currentZoom.toFixed(2)); // Avoid floating point precision issues
+                currentZoom = parseFloat(currentZoom.toFixed(2));
 
-                // 应用、记录并显示缩放
-                document.body.style.zoom = currentZoom;
+                applyZoom(currentZoom);
                 GM_setValue(zoomKey, currentZoom);
-                window.dispatchEvent(new Event('resize'));
                 showIndicator(currentZoom);
             }
         }, { passive: false });
+
+        // --- Panning logic (Right Click Drag) ---
+        window.addEventListener('mousedown', (e) => {
+            if (e.button === 2) { // Right mouse button
+                isPanning = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                lastScrollX = window.scrollX;
+                lastScrollY = window.scrollY;
+                hasMoved = false;
+                originalCursor = document.body.style.cursor;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                // Move sensitivity
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                    if (!hasMoved) {
+                        document.body.style.setProperty('cursor', 'move', 'important');
+                        document.documentElement.style.setProperty('cursor', 'move', 'important');
+                    }
+                    hasMoved = true;
+                }
+
+                if (hasMoved) {
+                    window.scrollTo(lastScrollX - dx, lastScrollY - dy);
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 2) {
+                isPanning = false;
+                if (hasMoved) {
+                    document.body.style.cursor = originalCursor;
+                    document.documentElement.style.cursor = originalCursor;
+                }
+            }
+        });
+
+        // Prevent context menu if we've dragged
+        window.addEventListener('contextmenu', (e) => {
+            if (hasMoved) {
+                e.preventDefault();
+                hasMoved = false;
+            }
+        });
+
     })();
 
 
